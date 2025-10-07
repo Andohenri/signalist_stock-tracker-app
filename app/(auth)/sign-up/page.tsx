@@ -5,8 +5,11 @@ import FooterLink from "@/components/forms/FooterLink";
 import InputField from "@/components/forms/InputField";
 import SelectField from "@/components/forms/SelectField";
 import { Button } from "@/components/ui/button";
+import { signUpWithEmail } from "@/lib/actions/auth.actions";
 import { INVESTMENT_GOALS, PREFERRED_INDUSTRIES, RISK_TOLERANCE_OPTIONS } from "@/lib/constants";
 import { SubmitHandler, useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const SignUp = () => {
   const {
@@ -26,13 +29,17 @@ const SignUp = () => {
     },
     mode: 'onBlur',
   })
+
+  const router = useRouter();
   const onSubmit = async (data: SignUpFormData) => {
     try {
-      console.log(data);
-      
+      const res = await signUpWithEmail(data);
+      if (res.success) router.push('/');
     } catch (error) {
       console.log(error);
-      
+      toast.error('Sign up failed. Please try again.', {
+        description: error instanceof Error ? error.message : 'Failed to sign up',
+      });
     }
   }
 
