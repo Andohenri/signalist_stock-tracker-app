@@ -26,7 +26,7 @@ const SignUp = () => {
     },
     mode: 'onBlur',
   })
-  const onSubmit = async (data: SignInFormData) => {
+  const onSubmit = async (data: SignUpFormData) => {
     try {
       console.log(data);
       
@@ -39,7 +39,7 @@ const SignUp = () => {
   return (
     <>
       <h1 className="form-title">Sign Up & Personalize</h1>
-      <form onSubmit={handleSubmit(onSubmit as SubmitHandler<SignInFormData>)} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit as SubmitHandler<SignUpFormData>)} className="space-y-5">
         <InputField
           name="fullName"
           label="Full Name"

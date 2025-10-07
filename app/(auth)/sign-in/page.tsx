@@ -10,7 +10,7 @@ const SignUp = () => {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<SignUpFormData>({
+  } = useForm<SignInFormData>({
     defaultValues: {
       email: '',
       password: '',
