@@ -58,12 +58,13 @@ export default function SearchCommand({ label, initialStocks }: SearchCommandPro
   };
 
   // Handle watchlist changes status change
-  const handleWatchlistChange = async (symbol: string, isAdded: boolean) => {
-    setStocks(
-      initialStocks?.map((stock) =>
+  const handleWatchlistChange = (symbol: string, isAdded: boolean) => {
+    setStocks((prev) => {
+      const source = prev?.length ? prev : initialStocks;
+      return (source ?? []).map((stock) =>
         stock.symbol === symbol ? { ...stock, isInWatchlist: isAdded } : stock
-      ) || []
-    );
+      );
+    });
   };
 
   const isMac = typeof navigator !== 'undefined' &&
