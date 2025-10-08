@@ -14,14 +14,13 @@ const NavItems = ({ initialStocks }: { initialStocks: StockWithWatchlistStatus[]
   };
 
   return (
-    <ul className='flex flex-col sm:flex-row p-2 gap-3 sm:gap-10 font-medium'>
-      {NAV_ITEMS.map(({ label, href }) => {
-        if (href === '/search') {
+    <ul className='flex md:items-center flex-col sm:flex-row p-2 gap-3 sm:gap-10 font-medium'>
+      {NAV_ITEMS.map(({ label, href, icon }) => {
+        if (href === '/search' ) {
           return (
             <li key='search-trigger'>
               <SearchCommand
-                renderAs={'text'}
-                label={'Search'} 
+                label={'Search...'} 
                 initialStocks={initialStocks}
               />
             </li>
@@ -29,7 +28,14 @@ const NavItems = ({ initialStocks }: { initialStocks: StockWithWatchlistStatus[]
         }
         return (
           <li key={label}>
-            <Link className={`hover:text-yellow-500 transition-colors ${isActive(href) ? 'text-gray-100' : '*:'}`} href={href}>{label}</Link>
+            <Link
+              className={`hover:text-yellow-500 transition-colors flex items-center gap-2 ${
+                isActive(href) ? 'text-gray-100' : 'text-gray-400'
+              }`}
+              href={href}
+            >
+              {icon && React.createElement(icon)} {label}
+            </Link>
           </li>
         );
       })}

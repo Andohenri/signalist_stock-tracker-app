@@ -1,8 +1,13 @@
 'use server';
 
-import { getDateRange, validateArticle, formatArticle } from '@/lib/utils';
+import { getDateRange, validateArticle, formatArticle, formatPrice, formatChangePercent, formatMarketCapValue } from '@/lib/utils';
 import { POPULAR_STOCK_SYMBOLS } from '@/lib/constants';
 import { cache } from 'react';
+import { auth } from '../better-auth/auth';
+import { headers } from 'next/headers';
+import { getWatchlistSymbolsByEmail } from './watchlist.actions';
+import { redirect } from 'next/navigation';
+import { Watchlist } from '@/database/models/watchlist.model';
 
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 const NEXT_PUBLIC_FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY ?? '';
@@ -98,6 +103,15 @@ export async function getNews(symbols?: string[]): Promise<MarketNewsArticle[]> 
 
 export const searchStocks = cache(async (query?: string): Promise<StockWithWatchlistStatus[]> => {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) redirect('/sign-in');
+
+    const userWatchlistSymbols = await getWatchlistSymbolsByEmail(
+      session.user.email
+    );
+
     const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
     if (!token) {
       // If no token, log and return empty to avoid throwing per requirements
@@ -129,7 +143,8 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
       results = profiles
         .map(({ sym, profile }) => {
           const symbol = sym.toUpperCase();
-          const name: string | undefined = profile?.name || profile?.ticker || undefined;
+          const name: string | undefined =
+            profile?.name || profile?.ticker || undefined;
           const exchange: string | undefined = profile?.exchange || undefined;
           if (!name) return undefined;
           const r: FinnhubSearchResult = {
@@ -164,7 +179,7 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
           name,
           exchange,
           type,
-          isInWatchlist: false,
+          isInWatchlist: userWatchlistSymbols.includes(upper),
         };
         return item;
       })
@@ -176,3 +191,61 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
     return [];
   }
 });
+
+// Fetch stock details by symbol
+export const getStocksDetails = cache(async (symbol: string) => {
+  const cleanSymbol = symbol.trim().toUpperCase();
+
+  try {
+export const getStocksDetails = cache(async (symbol: string) => {
+  const cleanSymbol = symbol.trim().toUpperCase();
+
+  try {
+    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+    if (!token) {
+      throw new Error('FINNHUB API key is not configured');
+    }
+
+    const [quote, profile, financials] = await Promise.all([
+      fetchJSON(
+        // Price data - no caching for accuracy
+        `${FINNHUB_BASE_URL}/quote?symbol=${cleanSymbol}&token=${token}`
+      ),
+      fetchJSON(
+        // Company info - cache 1hr (rarely changes)
+        `${FINNHUB_BASE_URL}/stock/profile2?symbol=${cleanSymbol}&token=${token}`,
+        3600
+      ),
+      fetchJSON(
+        // Financial metrics (P/E, etc.) - cache 30min
+        `${FINNHUB_BASE_URL}/stock/metric?symbol=${cleanSymbol}&metric=all&token=${token}`,
+        1800
+      ),
+    ]);
+
+    // ... rest of the code unchanged
+    };
+  } catch (error) {
+    console.error(`Error fetching details for ${cleanSymbol}:`, error);
+    throw new Error('Failed to fetch stock details');
+  }
+});
+
+// Get user's watchlist
+export const getUserWatchlist = async () => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) redirect('/sign-in');
+
+    const watchlist = await Watchlist.find({ userId: session.user.id })
+      .sort({ addedAt: -1 })
+      .lean();
+
+    return JSON.parse(JSON.stringify(watchlist));
+  } catch (error) {
+    console.error('Error fetching watchlist:', error);
+    throw new Error('Failed to fetch watchlist');
+  }
+}

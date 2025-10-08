@@ -2,12 +2,13 @@
 import React, { useEffect, useState, } from 'react';
 import { CommandDialog, CommandEmpty, CommandInput, CommandList, } from '@/components/ui/command';
 import { Button } from './ui/button';
-import { Loader2, Star, TrendingUp } from 'lucide-react';
+import { Loader2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { searchStocks } from '@/lib/actions/finnhub.actions';
 import { useDebounce } from '@/hooks/useDebounce';
+import WatchlistButton from './WatchListButton';
 
-export default function SearchCommand({ renderAs = 'button', label, initialStocks }: SearchCommandProps) {
+export default function SearchCommand({ label, initialStocks }: SearchCommandProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,7 @@ export default function SearchCommand({ renderAs = 'button', label, initialStock
   }, []);
 
   const handleSearch = async () => {
-    if(!isSearchMode) {
+    if (!isSearchMode) {
       setStocks(initialStocks);
       return;
     }
@@ -39,7 +40,7 @@ export default function SearchCommand({ renderAs = 'button', label, initialStock
       setStocks(results);
     } catch (error) {
       setStocks([]);
-    }finally {
+    } finally {
       setLoading(false);
     }
   }
@@ -53,16 +54,34 @@ export default function SearchCommand({ renderAs = 'button', label, initialStock
   const handleSelectStock = () => {
     setOpen(false);
     setSearchTerm('');
-    setStocks([]);
+    setStocks(initialStocks);
   };
+
+  // Handle watchlist changes status change
+  const handleWatchlistChange = (symbol: string, isAdded: boolean) => {
+    setStocks((prev) => {
+      const source = prev?.length ? prev : initialStocks;
+      return (source ?? []).map((stock) =>
+        stock.symbol === symbol ? { ...stock, isInWatchlist: isAdded } : stock
+      );
+    });
+  };
+
+  const isMac = typeof navigator !== 'undefined' &&
+    navigator.userAgent.toUpperCase().includes('MAC');
 
   return (
     <>
-      {renderAs === 'text' ? (
-        <span onClick={() => setOpen(true)} className='search-text'>{label}</span>
-      ) : (
-        <Button onClick={() => setOpen(true)} className='search-btn'>{label}</Button>
-      )}
+      <Button
+        variant="outline"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center justify-between gap-2 text-sm text-muted-foreground w-full sm:w-36"
+      >
+        <span>{label}</span>
+        <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+          <span className="text-xs">{isMac ? '⌘' : 'Ctrl'}</span>K
+        </kbd>
+      </Button>
       <CommandDialog open={open} onOpenChange={setOpen} className='search-dialog'>
         <div className='search-field'>
           <CommandInput className='search-input' placeholder="Search stocks..." value={searchTerm} onValueChange={setSearchTerm} />
@@ -82,7 +101,7 @@ export default function SearchCommand({ renderAs = 'button', label, initialStock
                 {` `}({displayStocks?.length || 0})
               </div>
               {displayStocks?.map((stock, i) => (
-                <li key={stock.symbol} className="search-item">
+                <li key={i} className="search-item">
                   <Link
                     href={`/stocks/${stock.symbol}`}
                     onClick={handleSelectStock}
@@ -97,7 +116,13 @@ export default function SearchCommand({ renderAs = 'button', label, initialStock
                         {stock.symbol} | {stock.exchange} | {stock.type}
                       </div>
                     </div>
-                    <Star />
+                    <WatchlistButton
+                      type='icon'
+                      symbol={stock.symbol}
+                      company={stock.name}
+                      isInWatchlist={stock.isInWatchlist}
+                      onWatchlistChange={handleWatchlistChange}
+                    />
                   </Link>
                 </li>
               ))}
