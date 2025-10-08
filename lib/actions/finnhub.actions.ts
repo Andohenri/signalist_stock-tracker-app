@@ -9,6 +9,14 @@ import { getWatchlistSymbolsByEmail } from './watchlist.actions';
 import { redirect } from 'next/navigation';
 import { Watchlist } from '@/database/models/watchlist.model';
 
+interface FinnhubProfile {
+  name?: string;
+  ticker?: string;
+  exchange?: string;
+  marketCapitalization?: number;
+  [key: string]: unknown;
+}
+
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 const NEXT_PUBLIC_FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY ?? '';
 
@@ -131,11 +139,11 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
           try {
             const url = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${encodeURIComponent(sym)}&token=${token}`;
             // Revalidate every hour
-            const profile = await fetchJSON<any>(url, 3600);
-            return { sym, profile } as { sym: string; profile: any };
+            const profile = await fetchJSON<FinnhubProfile>(url, 3600);
+            return { sym, profile } as { sym: string; profile: FinnhubProfile };
           } catch (e) {
             console.error('Error fetching profile2 for', sym, e);
-            return { sym, profile: null } as { sym: string; profile: any };
+            return { sym, profile: null } as { sym: string; profile: FinnhubProfile | null };
           }
         })
       );
@@ -156,7 +164,7 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
           // We don't include exchange in FinnhubSearchResult type, so carry via mapping later using profile
           // To keep pipeline simple, attach exchange via closure map stage
           // We'll reconstruct exchange when mapping to final type
-          (r as any).__exchange = exchange; // internal only
+          (r as FinnhubSearchResult & { __exchange?: string }).__exchange = exchange; // internal only
           return r;
         })
         .filter((x): x is FinnhubSearchResult => Boolean(x));
@@ -171,7 +179,7 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
         const upper = (r.symbol || '').toUpperCase();
         const name = r.description || upper;
         const exchangeFromDisplay = (r.displaySymbol as string | undefined) || undefined;
-        const exchangeFromProfile = (r as any).__exchange as string | undefined;
+        const exchangeFromProfile = (r as FinnhubSearchResult & { __exchange?: string }).__exchange;
         const exchange = exchangeFromDisplay || exchangeFromProfile || 'US';
         const type = r.type || 'Stock';
         const item: StockWithWatchlistStatus = {
@@ -193,10 +201,6 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
 });
 
 // Fetch stock details by symbol
-export const getStocksDetails = cache(async (symbol: string) => {
-  const cleanSymbol = symbol.trim().toUpperCase();
-
-  try {
 export const getStocksDetails = cache(async (symbol: string) => {
   const cleanSymbol = symbol.trim().toUpperCase();
 
@@ -223,8 +227,31 @@ export const getStocksDetails = cache(async (symbol: string) => {
       ),
     ]);
 
-    // ... rest of the code unchanged
+    // Type cast the responses
+    const quoteData = quote as QuoteData;
+    const profileData = profile as ProfileData;
+    const financialsData = financials as FinancialsData;
+
+    // Check if we got valid quote and profile data
+    if (!quoteData?.c || !profileData?.name)
+      throw new Error('Invalid stock data received from API');
+
+    const changePercent = quoteData.dp || 0;
+    const peRatio = financialsData?.metric?.peNormalizedAnnual || null;
+
+    return {
+      symbol: cleanSymbol,
+      company: profileData?.name,
+      currentPrice: quoteData.c,
+      changePercent,
+      priceFormatted: formatPrice(quoteData.c),
+      changeFormatted: formatChangePercent(changePercent),
+      peRatio: peRatio?.toFixed(1) || '—',
+      marketCapFormatted: formatMarketCapValue(
+        profileData?.marketCapitalization || 0
+      ),
     };
+    
   } catch (error) {
     console.error(`Error fetching details for ${cleanSymbol}:`, error);
     throw new Error('Failed to fetch stock details');
@@ -248,4 +275,4 @@ export const getUserWatchlist = async () => {
     console.error('Error fetching watchlist:', error);
     throw new Error('Failed to fetch watchlist');
   }
-}
+};
