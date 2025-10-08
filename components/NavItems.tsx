@@ -28,7 +28,14 @@ const NavItems = ({ initialStocks }: { initialStocks: StockWithWatchlistStatus[]
         }
         return (
           <li key={label}>
-            <Link className={`hover:text-yellow-500 transition-colors flex items-center gap-2 ${isActive(href) ? 'text-gray-100' : '*:'}`} href={href}> {icon && React.createElement(icon)} {label}</Link>
+            <Link
+              className={`hover:text-yellow-500 transition-colors flex items-center gap-2 ${
+                isActive(href) ? 'text-gray-100' : 'text-gray-400'
+              }`}
+              href={href}
+            >
+              {icon && React.createElement(icon)} {label}
+            </Link>
           </li>
         );
       })}
