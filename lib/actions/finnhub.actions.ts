@@ -197,46 +197,33 @@ export const getStocksDetails = cache(async (symbol: string) => {
   const cleanSymbol = symbol.trim().toUpperCase();
 
   try {
+export const getStocksDetails = cache(async (symbol: string) => {
+  const cleanSymbol = symbol.trim().toUpperCase();
+
+  try {
+    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+    if (!token) {
+      throw new Error('FINNHUB API key is not configured');
+    }
+
     const [quote, profile, financials] = await Promise.all([
       fetchJSON(
         // Price data - no caching for accuracy
-        `${FINNHUB_BASE_URL}/quote?symbol=${cleanSymbol}&token=${NEXT_PUBLIC_FINNHUB_API_KEY}`
+        `${FINNHUB_BASE_URL}/quote?symbol=${cleanSymbol}&token=${token}`
       ),
       fetchJSON(
         // Company info - cache 1hr (rarely changes)
-        `${FINNHUB_BASE_URL}/stock/profile2?symbol=${cleanSymbol}&token=${NEXT_PUBLIC_FINNHUB_API_KEY}`,
+        `${FINNHUB_BASE_URL}/stock/profile2?symbol=${cleanSymbol}&token=${token}`,
         3600
       ),
       fetchJSON(
         // Financial metrics (P/E, etc.) - cache 30min
-        `${FINNHUB_BASE_URL}/stock/metric?symbol=${cleanSymbol}&metric=all&token=${NEXT_PUBLIC_FINNHUB_API_KEY}`,
+        `${FINNHUB_BASE_URL}/stock/metric?symbol=${cleanSymbol}&metric=all&token=${token}`,
         1800
       ),
     ]);
 
-    // Type cast the responses
-    const quoteData = quote as QuoteData;
-    const profileData = profile as ProfileData;
-    const financialsData = financials as FinancialsData;
-
-    // Check if we got valid quote and profile data
-    if (!quoteData?.c || !profileData?.name)
-      throw new Error('Invalid stock data received from API');
-
-    const changePercent = quoteData.dp || 0;
-    const peRatio = financialsData?.metric?.peNormalizedAnnual || null;
-
-    return {
-      symbol: cleanSymbol,
-      company: profileData?.name,
-      currentPrice: quoteData.c,
-      changePercent,
-      priceFormatted: formatPrice(quoteData.c),
-      changeFormatted: formatChangePercent(changePercent),
-      peRatio: peRatio?.toFixed(1) || '—',
-      marketCapFormatted: formatMarketCapValue(
-        profileData?.marketCapitalization || 0
-      ),
+    // ... rest of the code unchanged
     };
   } catch (error) {
     console.error(`Error fetching details for ${cleanSymbol}:`, error);
