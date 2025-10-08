@@ -95,8 +95,8 @@ export const sendDailyNewsSummary = inngest.createFunction(
         const newsContent = (part && 'text' in part ? part.text : null) || 'No market news.'
 
         userNewsSummaries.push({ user, newsContent });
-      } catch (e) {
-        console.error('Failed to summarize news for : ', user.email);
+      } catch {
+        console.error('Failed to summarize news for : ', user.id);
         userNewsSummaries.push({ user, newsContent: null });
       }
     }
