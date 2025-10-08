@@ -53,6 +53,7 @@ export const getWatchlistSymbolsByEmail = async (email: string): Promise<string[
 
 export const addToWatchlist = async (symbol: string, company: string) => {
   try {
+    await connectToDatabase();
     const session = await auth.api.getSession({
       headers: await headers(),
     });
