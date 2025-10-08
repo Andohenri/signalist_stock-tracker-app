@@ -1,7 +1,9 @@
-export const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard' },
+import { LayoutDashboard, Star } from 'lucide-react';
+
+export const NAV_ITEMS  = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/watchlist', label: 'Watchlist', icon: Star },
   { href: '/search', label: 'Search' },
-  { href: '/watchlist', label: 'Watchlist' },
 ];
 
 // Sign-up form select options
